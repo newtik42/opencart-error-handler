@@ -70,8 +70,12 @@ class ErrorHandlerInstaller {
                 'system' .
                 DIRECTORY_SEPARATOR .
                 'framework.php';
+        
+        if(is_file($this->root . "/config.php")){
+            require_once $this->root . "/config.php";
+        }
 
-        $this->backupDir = $this->root .
+        $this->backupDir = DIR_STORAGE .
                 DIRECTORY_SEPARATOR .
                 '.error-handler-backup';
     }
@@ -482,7 +486,9 @@ class ErrorHandlerInstaller {
                             'Downloaded ErrorHandler.php is empty.'
                     );
         }
-
+        echo '<pre>';
+        var_dump($message);
+        echo '</pre>';
         /*
          * Validate downloaded source.
          */
