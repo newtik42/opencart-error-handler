@@ -70,8 +70,8 @@ class ErrorHandlerInstaller {
                 'system' .
                 DIRECTORY_SEPARATOR .
                 'framework.php';
-        
-        if(is_file($this->root . "/config.php")){
+
+        if (is_file($this->root . "/config.php")) {
             require_once $this->root . "/config.php";
         }
 
@@ -465,7 +465,7 @@ class ErrorHandlerInstaller {
      *
      * file_get_contents() only.
      */
-    private function downloadErrorHandler() {        
+    private function downloadErrorHandler() {
 
         $content = file_get_contents($this->githubUrl);
 
@@ -486,52 +486,27 @@ class ErrorHandlerInstaller {
                             'Downloaded ErrorHandler.php is empty.'
                     );
         }
-        echo '<pre>';
-        var_dump($message);
-        echo '</pre>';
         /*
          * Validate downloaded source.
          */
-        if (
-                strpos($content, '<?php') === false ||
-                strpos($content, 'class ErrorHandler') === false
-        ) {
-            throw new RuntimeException(
-                            'Downloaded file is not a valid ErrorHandler.php.'
-                    );
+        if (strpos($content, '<?php') === false || strpos($content, 'class ErrorHandler') === false) {
+            throw new RuntimeException('Downloaded file is not a valid ErrorHandler.php.');
         }
 
-        if (
-                file_put_contents(
-                        $this->libraryFile,
-                        $content,
-                        LOCK_EX
-                ) === false
-        ) {
-            throw new RuntimeException(
-                            'Unable to write ErrorHandler.php to: ' .
-                            $this->libraryFile
-                    );
+        if (file_put_contents($this->libraryFile, $content) === false) {
+            throw new RuntimeException('Unable to write ErrorHandler.php to: ' . $this->libraryFile);
         }
 
         /*
          * Immediately check downloaded PHP syntax.
          */
-        $syntax = $this->checkSyntax(
-                $this->libraryFile
-        );
+        $syntax = $this->checkSyntax($this->libraryFile);
 
         if (!$syntax['success']) {
-            throw new RuntimeException(
-                            'Downloaded ErrorHandler.php contains a PHP syntax error:' .
-                            PHP_EOL .
-                            $syntax['message']
-                    );
+            throw new RuntimeException('Downloaded ErrorHandler.php contains a PHP syntax error:' . PHP_EOL . $syntax['message']);
         }
 
-        $this->output(
-                '      [OK] ErrorHandler.php downloaded and validated.'
-        );
+        $this->output('      [OK] ErrorHandler.php downloaded and validated.');
     }
 
     /**
