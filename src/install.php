@@ -71,7 +71,7 @@ class ErrorHandlerInstaller {
 
         $this->createBackupDir();
 
-        $this->backupFile($this->startupFile);
+        //$this->backupFile($this->startupFile);
         $this->backupFile($this->frameworkFile);
         $this->backupFile($this->libraryFile);
 
@@ -81,7 +81,7 @@ class ErrorHandlerInstaller {
 
         $this->output('[4/7] Updating startup.php...');
 
-        $this->installStartup();
+        //$this->installStartup();
 
         $this->output('[5/7] Updating framework.php...');
 
@@ -417,7 +417,10 @@ PHP;
          */
         $pattern = '/(\$log\s*=\s*new\s+Log\s*\([^;]*\);\s*)/';
 
-        $replacement = '$1' . PHP_EOL . '$errorHandler->setLog($log);' . PHP_EOL;
+        $replacement = '$1' . PHP_EOL . 'require_once(DIR_SYSTEM . \'library/error_handler.php\');
+
+$errorHandler = new ErrorHandler\'development\', $log);
+$errorHandler->register();' . PHP_EOL;
 
         $count = 0;
 

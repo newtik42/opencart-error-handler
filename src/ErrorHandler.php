@@ -54,7 +54,7 @@ class ErrorHandler {
         $this->environment = $environment;
         $this->log = $log;
     }
-
+    
     public function setLog($log) {
         $this->log = $log;
     }
@@ -383,10 +383,7 @@ class ErrorHandler {
      */
     private function renderException($exception) {
         if ($this->isJsonRequest()) {
-            $this->jsonResponse(
-                    500,
-                    'Internal Server Error'
-            );
+            $this->jsonResponse(                    500,                    'Internal Server Error'            );
 
             return;
         }
