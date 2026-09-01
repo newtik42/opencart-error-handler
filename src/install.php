@@ -41,43 +41,22 @@ class ErrorHandlerInstaller {
         $realRoot = realpath($root);
 
         if ($realRoot === false) {
-            throw new RuntimeException(
-                            'OpenCart directory does not exist: ' . $root
-                    );
+            throw new RuntimeException('OpenCart directory does not exist: ' . $root);
         }
 
-        $this->root = rtrim(
-                $realRoot,
-                DIRECTORY_SEPARATOR
-        );
+        $this->root = rtrim($realRoot, DIRECTORY_SEPARATOR);
 
-        $this->libraryFile = $this->root .
-                DIRECTORY_SEPARATOR .
-                'system' .
-                DIRECTORY_SEPARATOR .
-                'library' .
-                DIRECTORY_SEPARATOR .
-                'error_handler.php';
+        $this->libraryFile = $this->root . DIRECTORY_SEPARATOR . 'system' . DIRECTORY_SEPARATOR . 'library' . DIRECTORY_SEPARATOR . 'error_handler.php';
 
-        $this->startupFile = $this->root .
-                DIRECTORY_SEPARATOR .
-                'system' .
-                DIRECTORY_SEPARATOR .
-                'startup.php';
+        $this->startupFile = $this->root . DIRECTORY_SEPARATOR . 'system' . DIRECTORY_SEPARATOR . 'startup.php';
 
-        $this->frameworkFile = $this->root .
-                DIRECTORY_SEPARATOR .
-                'system' .
-                DIRECTORY_SEPARATOR .
-                'framework.php';
+        $this->frameworkFile = $this->root . DIRECTORY_SEPARATOR . 'system' . DIRECTORY_SEPARATOR . 'framework.php';
 
         if (is_file($this->root . "/config.php")) {
             require_once $this->root . "/config.php";
         }
 
-        $this->backupDir = DIR_STORAGE .
-                DIRECTORY_SEPARATOR .
-                '.error-handler-backup';
+        $this->backupDir = DIR_STORAGE . DIRECTORY_SEPARATOR . '.error-handler-backup';
     }
 
     /**
@@ -120,17 +99,10 @@ class ErrorHandlerInstaller {
             $syntax = $this->checkSyntax($file);
 
             if (!$syntax['success']) {
-                throw new RuntimeException(
-                                'PHP syntax error in ' .
-                                $file .
-                                PHP_EOL .
-                                $syntax['message']
-                        );
+                throw new RuntimeException('PHP syntax error in ' . $file . PHP_EOL . $syntax['message']);
             }
 
-            $this->output(
-                    '      [OK] ' . $file
-            );
+            $this->output('      [OK] ' . $file);
         }
 
         $this->output('[7/7] Running final check...');
@@ -147,82 +119,31 @@ class ErrorHandlerInstaller {
             'checks' => array()
         );
 
-        $this->addCheck(
-                $result,
-                'PHP version',
-                version_compare(PHP_VERSION, '7.0.0', '>='),
-                PHP_VERSION
-        );
+        $this->addCheck($result, 'PHP version', version_compare(PHP_VERSION, '7.0.0', '>='), PHP_VERSION);
 
-        $this->addCheck(
-                $result,
-                'OpenCart system directory',
-                is_dir($this->root . '/system'),
-                $this->root . '/system'
-        );
+        $this->addCheck($result, 'OpenCart system directory', is_dir($this->root . '/system'), $this->root . '/system');
 
-        $this->addCheck(
-                $result,
-                'system/startup.php',
-                is_file($this->startupFile),
-                $this->startupFile
-        );
+        $this->addCheck($result, 'system/startup.php', is_file($this->startupFile), $this->startupFile);
 
-        $this->addCheck(
-                $result,
-                'system/framework.php',
-                is_file($this->frameworkFile),
-                $this->frameworkFile
-        );
+        $this->addCheck($result, 'system/framework.php', is_file($this->frameworkFile), $this->frameworkFile);
 
-        $this->addCheck(
-                $result,
-                'ErrorHandler.php',
-                is_file($this->libraryFile),
-                $this->libraryFile
-        );
+        $this->addCheck($result, 'ErrorHandler.php', is_file($this->libraryFile), $this->libraryFile);
 
         if (is_file($this->libraryFile)) {
-            $syntax = $this->checkSyntax(
-                    $this->libraryFile
-            );
+            $syntax = $this->checkSyntax($this->libraryFile);
 
-            $this->addCheck(
-                    $result,
-                    'ErrorHandler syntax',
-                    $syntax['success'],
-                    $syntax['message']
-            );
+            $this->addCheck($result, 'ErrorHandler syntax', $syntax['success'], $syntax['message']);
         }
 
         if (is_file($this->startupFile)) {
-            $content = file_get_contents(
-                    $this->startupFile
-            );
+            $content = file_get_contents($this->startupFile);
 
             if ($content === false) {
-                $this->addCheck(
-                        $result,
-                        'startup.php readable',
-                        false,
-                        'Unable to read startup.php'
-                );
+                $this->addCheck($result, 'startup.php readable', false, 'Unable to read startup.php');
             } else {
-                $installed = strpos(
-                                $content,
-                                "library/error_handler.php"
-                        ) !== false &&
-                        strpos(
-                                $content,
-                                '$errorHandler->register()'
-                        ) !== false;
+                $installed = strpos($content, "library/error_handler.php") !== false && strpos($content, '$errorHandler->register()') !== false;
 
-                $this->addCheck(
-                        $result,
-                        'startup.php integration',
-                        $installed,
-                        $installed ? 'ErrorHandler registered' : 'ErrorHandler integration not found'
-                );
+                $this->addCheck($result, 'startup.php integration', $installed, $installed ? 'ErrorHandler registered' : 'ErrorHandler integration not found');
             }
         }
 
@@ -232,33 +153,15 @@ class ErrorHandlerInstaller {
             );
 
             if ($content === false) {
-                $this->addCheck(
-                        $result,
-                        'framework.php readable',
-                        false,
-                        'Unable to read framework.php'
-                );
+                $this->addCheck($result, 'framework.php readable', false, 'Unable to read framework.php');
             } else {
-                $installed = strpos(
-                                $content,
-                                '$errorHandler->setLog($log)'
-                        ) !== false;
+                $installed = strpos($content, '$errorHandler->setLog($log)') !== false;
 
-                $this->addCheck(
-                        $result,
-                        'framework.php integration',
-                        $installed,
-                        $installed ? 'OpenCart logger connected' : 'setLog() integration not found'
-                );
+                $this->addCheck($result, 'framework.php integration', $installed, $installed ? 'OpenCart logger connected' : 'setLog() integration not found');
             }
         }
 
-        $this->addCheck(
-                $result,
-                'Backup directory',
-                is_dir($this->backupDir),
-                is_dir($this->backupDir) ? $this->backupDir : 'Backup not found'
-        );
+        $this->addCheck($result, 'Backup directory', is_dir($this->backupDir), is_dir($this->backupDir) ? $this->backupDir : 'Backup not found');
 
         return $result;
     }
@@ -268,19 +171,13 @@ class ErrorHandlerInstaller {
      */
     public function restore() {
         if (!is_dir($this->backupDir)) {
-            throw new RuntimeException(
-                            'Backup directory does not exist: ' .
-                            $this->backupDir
-                    );
+            throw new RuntimeException('Backup directory does not exist: ' . $this->backupDir);
         }
 
         $files = array(
-            'system__startup.php' =>
-            $this->startupFile,
-            'system__framework.php' =>
-            $this->frameworkFile,
-            'system__library__error_handler.php' =>
-            $this->libraryFile
+            'system__startup.php' => $this->startupFile,
+            'system__framework.php' => $this->frameworkFile,
+            'system__library__error_handler.php' => $this->libraryFile
         );
 
         $restored = array();
@@ -295,10 +192,7 @@ class ErrorHandlerInstaller {
             }
 
             if (!copy($source, $target)) {
-                throw new RuntimeException(
-                                'Unable to restore: ' .
-                                $target
-                        );
+                throw new RuntimeException('Unable to restore: ' . $target);
             }
 
             $restored[] = $target;
@@ -314,21 +208,15 @@ class ErrorHandlerInstaller {
         $installer = __FILE__;
 
         if (!is_file($installer)) {
-            throw new RuntimeException(
-                            'Installer file not found.'
-                    );
+            throw new RuntimeException('Installer file not found.');
         }
 
         if (!is_writable($installer)) {
-            throw new RuntimeException(
-                            'Installer is not writable.'
-                    );
+            throw new RuntimeException('Installer is not writable.');
         }
 
         if (!unlink($installer)) {
-            throw new RuntimeException(
-                            'Unable to delete installer.'
-                    );
+            throw new RuntimeException('Unable to delete installer.');
         }
 
         return true;
@@ -339,67 +227,41 @@ class ErrorHandlerInstaller {
      */
     private function checkOpenCart() {
         if (!is_dir($this->root . '/system')) {
-            throw new RuntimeException(
-                            'OpenCart system directory not found: ' .
-                            $this->root . '/system'
-                    );
+            throw new RuntimeException('OpenCart system directory not found: ' . $this->root . '/system');
         }
 
         if (!is_file($this->startupFile)) {
-            throw new RuntimeException(
-                            'system/startup.php not found.'
-                    );
+            throw new RuntimeException('system/startup.php not found.');
         }
 
         if (!is_file($this->frameworkFile)) {
-            throw new RuntimeException(
-                            'system/framework.php not found.'
-                    );
+            throw new RuntimeException('system/framework.php not found.');
         }
 
-        $libraryDir = $this->root .
-                DIRECTORY_SEPARATOR .
-                'system' .
-                DIRECTORY_SEPARATOR .
-                'library';
+        $libraryDir = $this->root . DIRECTORY_SEPARATOR . 'system' . DIRECTORY_SEPARATOR . 'library';
 
         if (!is_dir($libraryDir)) {
-            throw new RuntimeException(
-                            'system/library directory not found.'
-                    );
+            throw new RuntimeException('system/library directory not found.');
         }
 
         if (!is_readable($this->startupFile)) {
-            throw new RuntimeException(
-                            'system/startup.php is not readable.'
-                    );
+            throw new RuntimeException('system/startup.php is not readable.');
         }
 
         if (!is_writable($this->startupFile)) {
-            throw new RuntimeException(
-                            'system/startup.php is not writable.'
-                    );
+            throw new RuntimeException('system/startup.php is not writable.');
         }
 
         if (!is_readable($this->frameworkFile)) {
-            throw new RuntimeException(
-                            'system/framework.php is not readable.'
-                    );
+            throw new RuntimeException('system/framework.php is not readable.');
         }
 
         if (!is_writable($this->frameworkFile)) {
-            throw new RuntimeException(
-                            'system/framework.php is not writable.'
-                    );
+            throw new RuntimeException('system/framework.php is not writable.');
         }
 
-        if (
-                is_file($this->libraryFile) &&
-                !is_writable($this->libraryFile)
-        ) {
-            throw new RuntimeException(
-                            'system/library/error_handler.php is not writable.'
-                    );
+        if (is_file($this->libraryFile) && !is_writable($this->libraryFile)) {
+            throw new RuntimeException('system/library/error_handler.php is not writable.');
         }
     }
 
@@ -411,15 +273,8 @@ class ErrorHandlerInstaller {
             return;
         }
 
-        if (!mkdir(
-                        $this->backupDir,
-                        0755,
-                        true
-                )) {
-            throw new RuntimeException(
-                            'Unable to create backup directory: ' .
-                            $this->backupDir
-                    );
+        if (!mkdir($this->backupDir, 0755, true)) {
+            throw new RuntimeException('Unable to create backup directory: ' . $this->backupDir);
         }
     }
 
@@ -431,19 +286,9 @@ class ErrorHandlerInstaller {
             return;
         }
 
-        $relative = str_replace(
-                $this->root . DIRECTORY_SEPARATOR,
-                '',
-                $file
-        );
+        $relative = str_replace($this->root . DIRECTORY_SEPARATOR, '', $file);
 
-        $backup = $this->backupDir .
-                DIRECTORY_SEPARATOR .
-                str_replace(
-                        DIRECTORY_SEPARATOR,
-                        '__',
-                        $relative
-                );
+        $backup = $this->backupDir . DIRECTORY_SEPARATOR . str_replace(DIRECTORY_SEPARATOR, '__', $relative);
 
         /*
          * Do not overwrite original backup.
@@ -453,10 +298,7 @@ class ErrorHandlerInstaller {
         }
 
         if (!copy($file, $backup)) {
-            throw new RuntimeException(
-                            'Unable to create backup: ' .
-                            $file
-                    );
+            throw new RuntimeException('Unable to create backup: ' . $file);
         }
     }
 
@@ -482,9 +324,7 @@ class ErrorHandlerInstaller {
         }
 
         if (trim($content) === '') {
-            throw new RuntimeException(
-                            'Downloaded ErrorHandler.php is empty.'
-                    );
+            throw new RuntimeException('Downloaded ErrorHandler.php is empty.');
         }
         /*
          * Validate downloaded source.
@@ -497,15 +337,6 @@ class ErrorHandlerInstaller {
             throw new RuntimeException('Unable to write ErrorHandler.php to: ' . $this->libraryFile);
         }
 
-        /*
-         * Immediately check downloaded PHP syntax.
-         */
-        $syntax = $this->checkSyntax($this->libraryFile);
-
-        if (!$syntax['success']) {
-            throw new RuntimeException('Downloaded ErrorHandler.php contains a PHP syntax error:' . PHP_EOL . $syntax['message']);
-        }
-
         $this->output('      [OK] ErrorHandler.php downloaded and validated.');
     }
 
@@ -513,29 +344,17 @@ class ErrorHandlerInstaller {
      * Add ErrorHandler to startup.php.
      */
     private function installStartup() {
-        $content = file_get_contents(
-                $this->startupFile
-        );
+        $content = file_get_contents($this->startupFile);
 
         if ($content === false) {
-            throw new RuntimeException(
-                            'Unable to read startup.php.'
-                    );
+            throw new RuntimeException('Unable to read startup.php.');
         }
 
         /*
          * Already installed.
          */
-        if (
-                strpos(
-                        $content,
-                        "library/error_handler.php"
-                ) !== false
-        ) {
-            $this->output(
-                    '      [OK] ErrorHandler already exists in startup.php.'
-            );
-
+        if (strpos($content, "library/error_handler.php") !== false) {
+            $this->output('      [OK] ErrorHandler already exists in startup.php.');
             return;
         }
 
@@ -551,73 +370,38 @@ $errorHandler->register();
 
 PHP;
 
-        $position = strpos(
-                $content,
-                '<?php'
-        );
+        $position = strpos($content, '<?php');
 
         if ($position === false) {
-            throw new RuntimeException(
-                            'PHP opening tag not found in startup.php.'
-                    );
+            throw new RuntimeException('PHP opening tag not found in startup.php.');
         }
 
         $position += 5;
 
-        $newContent = substr(
-                        $content,
-                        0,
-                        $position
-                ) .
-                $code .
-                substr(
-                        $content,
-                        $position
-                );
+        $newContent = substr($content, 0, $position) . $code . substr($content, $position);
 
-        if (
-                file_put_contents(
-                        $this->startupFile,
-                        $newContent,
-                        LOCK_EX
-                ) === false
-        ) {
-            throw new RuntimeException(
-                            'Unable to write startup.php.'
-                    );
+        if (file_put_contents($this->startupFile, $newContent, LOCK_EX) === false) {
+            throw new RuntimeException('Unable to write startup.php.');
         }
 
-        $this->output(
-                '      [OK] startup.php updated.'
-        );
+        $this->output('      [OK] startup.php updated.');
     }
 
     /**
      * Connect ErrorHandler to OpenCart logger.
      */
     private function installFramework() {
-        $content = file_get_contents(
-                $this->frameworkFile
-        );
+        $content = file_get_contents($this->frameworkFile);
 
         if ($content === false) {
-            throw new RuntimeException(
-                            'Unable to read framework.php.'
-                    );
+            throw new RuntimeException('Unable to read framework.php.');
         }
 
         /*
          * Already installed.
          */
-        if (
-                strpos(
-                        $content,
-                        '$errorHandler->setLog($log)'
-                ) !== false
-        ) {
-            $this->output(
-                    '      [OK] $errorHandler->setLog($log) already exists.'
-            );
+        if (strpos($content, '$errorHandler->setLog($log)') !== false) {
+            $this->output('      [OK] $errorHandler->setLog($log) already exists.');
 
             return;
         }
@@ -633,46 +417,21 @@ PHP;
          */
         $pattern = '/(\$log\s*=\s*new\s+Log\s*\([^;]*\);\s*)/';
 
-        $replacement = '$1' .
-                PHP_EOL .
-                '$errorHandler->setLog($log);' .
-                PHP_EOL;
+        $replacement = '$1' . PHP_EOL . '$errorHandler->setLog($log);' . PHP_EOL;
 
         $count = 0;
 
-        $newContent = preg_replace(
-                $pattern,
-                $replacement,
-                $content,
-                1,
-                $count
-        );
+        $newContent = preg_replace($pattern, $replacement, $content, 1, $count);
 
-        if (
-                $newContent === null ||
-                $count === 0
-        ) {
-            throw new RuntimeException(
-                            'Unable to find "$log = new Log(...);" ' .
-                            'in framework.php.'
-                    );
+        if ($newContent === null || $count === 0) {
+            throw new RuntimeException('Unable to find "$log = new Log(...);" ' . 'in framework.php.');
         }
 
-        if (
-                file_put_contents(
-                        $this->frameworkFile,
-                        $newContent,
-                        LOCK_EX
-                ) === false
-        ) {
-            throw new RuntimeException(
-                            'Unable to write framework.php.'
-                    );
+        if (file_put_contents($this->frameworkFile, $newContent, LOCK_EX) === false) {
+            throw new RuntimeException('Unable to write framework.php.');
         }
 
-        $this->output(
-                '      [OK] framework.php updated.'
-        );
+        $this->output('      [OK] framework.php updated.');
     }
 
     /**
@@ -692,18 +451,10 @@ PHP;
          * PHP_BINDIR is more reliable than PHP_BINARY
          * on some older PHP/OpenCart environments.
          */
-        if (
-                defined('PHP_BINDIR') &&
-                PHP_BINDIR !== ''
-        ) {
-            $candidate = rtrim(PHP_BINDIR, DIRECTORY_SEPARATOR) .
-                    DIRECTORY_SEPARATOR .
-                    'php';
+        if (defined('PHP_BINDIR') && PHP_BINDIR !== '') {
+            $candidate = rtrim(PHP_BINDIR, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'php';
 
-            if (
-                    is_file($candidate) &&
-                    is_executable($candidate)
-            ) {
+            if (is_file($candidate) && is_executable($candidate)) {
                 $php = $candidate;
             }
         }
@@ -712,11 +463,7 @@ PHP;
          * Fallback to current PHP executable.
          */
         if ($php === null && defined('PHP_BINARY')) {
-            if (
-                    PHP_BINARY !== '' &&
-                    is_file(PHP_BINARY) &&
-                    is_executable(PHP_BINARY)
-            ) {
+            if (PHP_BINARY !== '' && is_file(PHP_BINARY) && is_executable(PHP_BINARY)) {
                 $php = PHP_BINARY;
             }
         }
@@ -728,22 +475,12 @@ PHP;
             $output = array();
             $returnCode = 0;
 
-            exec(
-                    'command -v php 2>/dev/null',
-                    $output,
-                    $returnCode
-            );
+            exec('command -v php 2>/dev/null', $output, $returnCode);
 
-            if (
-                    $returnCode === 0 &&
-                    !empty($output[0])
-            ) {
+            if ($returnCode === 0 && !empty($output[0])) {
                 $candidate = trim($output[0]);
 
-                if (
-                        is_file($candidate) &&
-                        is_executable($candidate)
-                ) {
+                if (is_file($candidate) && is_executable($candidate)) {
                     $php = $candidate;
                 }
             }
@@ -760,35 +497,20 @@ PHP;
         $output = array();
         $returnCode = 0;
 
-        $command = escapeshellarg($php) .
-                ' -l ' .
-                escapeshellarg($file) .
-                ' 2>&1';
+        $command = escapeshellarg($php) . ' -l ' . escapeshellarg($file) . ' 2>&1';
 
-        exec(
-                $command,
-                $output,
-                $returnCode
-        );
+        exec($command, $output, $returnCode);
 
         return array(
             'success' => $returnCode === 0,
-            'message' => implode(
-                    ' ',
-                    $output
-            )
+            'message' => implode(' ', $output)
         );
     }
 
     /**
      * Add check result.
      */
-    private function addCheck(
-            &$result,
-            $name,
-            $success,
-            $message
-    ) {
+    private function addCheck(&$result, $name, $success, $message) {
         $result['checks'][] = array(
             'name' => $name,
             'success' => (bool) $success,
@@ -992,14 +714,9 @@ if (php_sapi_name() === 'cli') {
 
                 echo "Continue? [y/N]: ";
 
-                $answer = trim(
-                        fgets(STDIN)
-                );
+                $answer = trim(fgets(STDIN));
 
-                if (
-                        strtolower($answer) !== 'y' &&
-                        strtolower($answer) !== 'yes'
-                ) {
+                if (strtolower($answer) !== 'y' && strtolower($answer) !== 'yes') {
                     echo "Cancelled." . PHP_EOL;
                     exit(0);
                 }
@@ -1010,14 +727,11 @@ if (php_sapi_name() === 'cli') {
 
                 if (count($restored) === 0) {
 
-                    echo "No backup files found."
-                    . PHP_EOL;
+                    echo "No backup files found." . PHP_EOL;
                 } else {
 
                     foreach ($restored as $file) {
-                        echo "[OK] " .
-                        $file .
-                        PHP_EOL;
+                        echo "[OK] " . $file . PHP_EOL;
                     }
                 }
 
@@ -1041,29 +755,22 @@ if (php_sapi_name() === 'cli') {
 
                 echo PHP_EOL;
 
-                echo "WARNING: install.php will be permanently deleted."
-                . PHP_EOL;
+                echo "WARNING: install.php will be permanently deleted." . PHP_EOL;
 
                 echo PHP_EOL;
 
                 echo "Continue? [y/N]: ";
 
-                $answer = trim(
-                        fgets(STDIN)
-                );
+                $answer = trim(fgets(STDIN));
 
-                if (
-                        strtolower($answer) !== 'y' &&
-                        strtolower($answer) !== 'yes'
-                ) {
+                if (strtolower($answer) !== 'y' && strtolower($answer) !== 'yes') {
                     echo "Cancelled." . PHP_EOL;
                     exit(0);
                 }
 
                 $installer->deleteInstaller();
 
-                echo "Installer deleted successfully."
-                . PHP_EOL;
+                echo "Installer deleted successfully." . PHP_EOL;
 
                 exit(0);
 
@@ -1086,64 +793,47 @@ if (php_sapi_name() === 'cli') {
 
                 echo "Usage:" . PHP_EOL;
 
-                echo "  php install.php"
-                . PHP_EOL;
+                echo "  php install.php" . PHP_EOL;
 
-                echo "  php install.php all [path]"
-                . PHP_EOL;
+                echo "  php install.php all [path]" . PHP_EOL;
 
-                echo "  php install.php install [path]"
-                . PHP_EOL;
+                echo "  php install.php install [path]" . PHP_EOL;
 
-                echo "  php install.php check [path]"
-                . PHP_EOL;
+                echo "  php install.php check [path]" . PHP_EOL;
 
-                echo "  php install.php restore [path]"
-                . PHP_EOL;
+                echo "  php install.php restore [path]" . PHP_EOL;
 
-                echo "  php install.php delete [path]"
-                . PHP_EOL;
+                echo "  php install.php delete [path]" . PHP_EOL;
 
                 echo PHP_EOL;
 
                 echo "Commands:" . PHP_EOL;
 
-                echo "  all       Full installation and verification"
-                . PHP_EOL;
+                echo "  all       Full installation and verification" . PHP_EOL;
 
-                echo "  install   Alias for all"
-                . PHP_EOL;
+                echo "  install   Alias for all" . PHP_EOL;
 
-                echo "  check     Check installation"
-                . PHP_EOL;
+                echo "  check     Check installation" . PHP_EOL;
 
-                echo "  restore   Restore original backup"
-                . PHP_EOL;
+                echo "  restore   Restore original backup" . PHP_EOL;
 
-                echo "  delete    Delete installer"
-                . PHP_EOL;
+                echo "  delete    Delete installer" . PHP_EOL;
 
                 echo PHP_EOL;
 
                 echo "Examples:" . PHP_EOL;
 
-                echo "  php install.php"
-                . PHP_EOL;
+                echo "  php install.php" . PHP_EOL;
 
-                echo "  php install.php all"
-                . PHP_EOL;
+                echo "  php install.php all" . PHP_EOL;
 
-                echo "  php install.php all /web/sites/multibank_credit"
-                . PHP_EOL;
+                echo "  php install.php all /web/sites/multibank_credit" . PHP_EOL;
 
-                echo "  php install.php check"
-                . PHP_EOL;
+                echo "  php install.php check" . PHP_EOL;
 
-                echo "  php install.php restore"
-                . PHP_EOL;
+                echo "  php install.php restore" . PHP_EOL;
 
-                echo "  php install.php delete"
-                . PHP_EOL;
+                echo "  php install.php delete" . PHP_EOL;
 
                 echo PHP_EOL;
 
@@ -1151,15 +841,11 @@ if (php_sapi_name() === 'cli') {
 
             default:
 
-                echo "Unknown command: " .
-                $command .
-                PHP_EOL;
+                echo "Unknown command: " . $command . PHP_EOL;
 
-                echo "Run:"
-                . PHP_EOL;
+                echo "Run:" . PHP_EOL;
 
-                echo "  php install.php --help"
-                . PHP_EOL;
+                echo "  php install.php --help" . PHP_EOL;
 
                 exit(1);
         }
@@ -1182,11 +868,7 @@ if (php_sapi_name() === 'cli') {
  */
 
 function h($value) {
-    return htmlspecialchars(
-            $value,
-            ENT_QUOTES,
-            'UTF-8'
-    );
+    return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 }
 
 function webHeader() {
@@ -1347,30 +1029,13 @@ function renderChecks($result) {
 
     echo '<h2>System Check</h2>';
 
-    foreach (
-            $result['checks']
-    as $check
-    ) {
+    foreach ($result['checks'] as $check) {
         $class = $check['success'] ? 'ok' : 'fail';
-
         $icon = $check['success'] ? '&#10003;' : '&#10007;';
-
-        echo '<div class="check ' .
-        $class .
-        '">';
-
-        echo '<strong>' .
-        $icon .
-        ' ' .
-        h($check['name']) .
-        '</strong>';
-
+        echo '<div class="check ' . $class . '">';
+        echo '<strong>' . $icon . ' ' . h($check['name']) . '</strong>';
         echo '<br>';
-
-        echo '<span class="small">' .
-        h($check['message']) .
-        '</span>';
-
+        echo '<span class="small">' . h($check['message']) . '</span>';
         echo '</div>';
     }
 
@@ -1379,18 +1044,14 @@ function renderChecks($result) {
 
 try {
 
-    $installer = new ErrorHandlerInstaller(
-            dirname(__FILE__)
-    );
+    $installer = new ErrorHandlerInstaller(dirname(__FILE__));
 
     webHeader();
 
     $message = null;
     $error = null;
 
-    if (
-            isset($_POST['action'])
-    ) {
+    if (isset($_POST['action'])) {
         $action = $_POST['action'];
 
         try {
@@ -1452,16 +1113,11 @@ try {
     }
 
     if ($message !== null) {
-        echo '<div class="status success">' .
-        nl2br(h($message)) .
-        '</div>';
+        echo '<div class="status success">' . nl2br(h($message)) . '</div>';
     }
 
     if ($error !== null) {
-        echo '<div class="status error">' .
-        '<strong>Error:</strong><br>' .
-        nl2br(h($error)) .
-        '</div>';
+        echo '<div class="status error">' . '<strong>Error:</strong><br>' . nl2br(h($error)) . '</div>';
     }
 
     echo '<div class="card">';
