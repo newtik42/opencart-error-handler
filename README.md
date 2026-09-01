@@ -33,7 +33,7 @@ The easiest way to install the Error Handler is to download `install.php` direct
 From the OpenCart root directory:
 
 ```bash
-wget https://raw.githubusercontent.com/newtik42/opencart-error-handler/master/install.php
+wget https://raw.githubusercontent.com/newtik42/opencart-error-handler/refs/heads/master/src/install.php
 php install.php
 ```
 
@@ -348,7 +348,7 @@ To update the Error Handler, download the current installer again:
 
 ```bash
 wget -O install.php \
-https://raw.githubusercontent.com/newtik42/opencart-error-handler/master/install.php
+https://raw.githubusercontent.com/newtik42/opencart-error-handler/refs/heads/master/src/install.php
 ```
 
 Then run:
