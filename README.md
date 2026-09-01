@@ -1,43 +1,223 @@
 # OpenCart 3 Error Handler
 
-A centralized error and exception handler for OpenCart 3, inspired by Laravel's error handling approach.
+A production-oriented error handler for OpenCart 3 that provides Laravel-like exception and error handling.
 
-The handler provides centralized handling of PHP errors, uncaught exceptions, fatal errors, and shutdown errors while preventing sensitive database credentials from being exposed through PHP stack traces.
+The handler:
 
-## Features
+* Captures PHP errors and exceptions.
+* Registers a global exception handler.
+* Registers a shutdown handler for fatal errors.
+* Hides sensitive database connection arguments from stack traces.
+* Specifically protects `DB\...\__construct()` arguments.
+* Integrates with the native OpenCart `$log`.
+* Supports production and development environments.
+* Creates backups before modifying OpenCart files.
+* Includes an automated installer.
+* Provides both CLI and web-based installation.
 
-* Centralized PHP error handling
-* `set_error_handler()` support
-* `set_exception_handler()` support
-* `register_shutdown_function()` support
-* Fatal Error handling
-* Parse Error detection through shutdown handling
-* Safe stack trace generation
-* Database credential protection
-* Removes arguments from:
+## Requirements
 
-  * `DB\...\__construct()`
-  * `DB->__construct()`
-* Development and production modes
-* HTML error pages
-* JSON responses for AJAX/API requests
-* OpenCart `Log` integration
-* Automatic masking of common secrets
-* PHP 7.x / 8.x compatible
-* No PHP 8-only syntax such as `match`
+* OpenCart 3.x
+* PHP 7.0+
+* PHP CLI for CLI installation
+* `allow_url_fopen = On` for downloading files from GitHub with `file_get_contents()`
 
 ---
 
-# Why is this necessary?
+# Installation
 
-PHP stack traces can contain function arguments.
+## Automatic installation
 
-This is especially dangerous in OpenCart because database connection parameters are passed directly to constructors.
+The easiest way to install the Error Handler is to download `install.php` directly from GitHub and run it with PHP.
+
+From the OpenCart root directory:
+
+```bash
+wget https://raw.githubusercontent.com/newtik42/opencart-error-handler/master/install.php
+php install.php
+```
+
+The installer automatically:
+
+1. Detects the OpenCart installation.
+2. Creates backups.
+3. Downloads the latest `ErrorHandler.php` from GitHub.
+4. Installs it into `system/library/error_handler.php`.
+5. Updates `system/startup.php`.
+6. Connects the Error Handler to the OpenCart `$log`.
+7. Updates `system/framework.php`.
+8. Checks PHP syntax.
+9. Runs a final installation check.
+
+The Error Handler is downloaded from:
+
+```text
+https://raw.githubusercontent.com/newtik42/opencart-error-handler/refs/heads/master/src/ErrorHandler.php
+```
+
+### Install a specific OpenCart directory
+
+If `install.php` is not located in the OpenCart root:
+
+```bash
+wget https://raw.githubusercontent.com/newtik42/opencart-error-handler/master/install.php
+php install.php /web/sites/multibank_credit
+```
+
+---
+
+# CLI
+
+The installer supports several CLI commands.
+
+## Full installation
+
+```bash
+php install.php all
+```
+
+or:
+
+```bash
+php install.php install
+```
+
+Both commands perform the complete installation and verification process.
+
+Example:
+
+```text
+=============================================
+ OpenCart 3 Error Handler
+ Full Installation
+=============================================
+
+[1/7] Checking OpenCart...
+      OK
+
+[2/7] Creating backup...
+      OK
+
+[3/7] Downloading ErrorHandler.php...
+      OK
+
+[4/7] Updating startup.php...
+      OK
+
+[5/7] Updating framework.php...
+      OK
+
+[6/7] Checking PHP syntax...
+      OK
+
+[7/7] Running final check...
+      OK
+
+=============================================
+ INSTALLATION SUCCESSFUL
+=============================================
+```
+
+## Check installation
+
+```bash
+php install.php check
+```
+
+The command verifies:
+
+* OpenCart files
+* `ErrorHandler.php`
+* PHP syntax
+* `startup.php` integration
+* `framework.php` integration
+* OpenCart logger integration
+* backup availability
+
+Exit codes:
+
+```text
+0 = success
+1 = failed
+```
+
+This makes the command suitable for deployment scripts.
+
+## Restore backup
+
+```bash
+php install.php restore
+```
+
+The installer asks for confirmation before restoring the original files.
+
+## Delete installer
+
+After successful installation:
+
+```bash
+php install.php delete
+```
+
+This permanently removes `install.php`.
+
+---
+
+# Web Installation
+
+`install.php` can also be opened through a web browser.
+
+Copy `install.php` to the OpenCart root and open:
+
+```text
+https://example.com/install.php
+```
+
+The web interface provides:
+
+* **Install / Update**
+* **Check Installation**
+* **Restore Backup**
+* **Delete Installer**
+
+The interface also displays the status of each installation check.
+
+After installation, delete `install.php` using **Delete Installer**.
+
+---
+
+# OpenCart Integration
+
+The installer registers the Error Handler from `system/startup.php`:
+
+```php
+require_once(DIR_SYSTEM . 'library/error_handler.php');
+
+$errorHandler = new ErrorHandler('production');
+$errorHandler->register();
+```
+
+The OpenCart logger is connected from `system/framework.php`:
+
+```php
+$log = new Log('error.log');
+
+$errorHandler->setLog($log);
+```
+
+This allows the Error Handler to use the native OpenCart logging mechanism.
+
+---
+
+# Database Exception Protection
+
+Database connection exceptions can contain sensitive connection parameters.
 
 For example:
 
 ```text
-#0 /web/sites/example/system/library/db.php(31): DB\mPDO->__construct(
+#0 /system/library/db.php(31):
+DB\mPDO->__construct(
     'localhost',
     'username',
     'password',
@@ -46,28 +226,56 @@ For example:
 )
 ```
 
-The database password can therefore be exposed through:
-
-* browser error output
-* PHP logs
-* OpenCart logs
-* monitoring systems
-* exception reporting systems
-
-This handler removes constructor arguments from database-related calls.
-
-The resulting trace is:
+The Error Handler detects database constructor calls using:
 
 ```text
-#0 /web/sites/example/system/library/db.php(31): DB\mPDO->__construct()
-#1 /web/sites/example/system/framework.php(146): DB->__construct()
+DB\
+```
+
+and:
+
+```text
+__construct
+```
+
+and removes their arguments from the displayed stack trace.
+
+The resulting trace does not expose database credentials.
+
+---
+
+# Backup
+
+Before modifying OpenCart files, the installer creates:
+
+```text
+.error-handler-backup/
+```
+
+The original files are preserved there.
+
+Typical backup files:
+
+```text
+.error-handler-backup/
+├── system__startup.php
+├── system__framework.php
+└── system__library__error_handler.php
+```
+
+The backup is not overwritten during subsequent installations.
+
+To restore the original files:
+
+```bash
+php install.php restore
 ```
 
 ---
 
-# Installation
+# Manual Installation
 
-Copy:
+If you do not want to use the installer, copy:
 
 ```text
 src/ErrorHandler.php
@@ -79,419 +287,119 @@ to:
 system/library/error_handler.php
 ```
 
-Example:
-
-```text
-/web/sites/example/
-├── admin/
-├── catalog/
-├── system/
-│   ├── library/
-│   │   └── error_handler.php
-│   └── startup.php
-├── config.php
-└── index.php
-```
-
----
-
-# OpenCart 3 Integration
-
-The error handler should be registered from:
-
-```text
-system/startup.php
-```
-
-This allows the handler to be registered before the OpenCart framework initializes the database and other application components.
-
-Add:
+Then add to `system/startup.php`:
 
 ```php
 require_once(DIR_SYSTEM . 'library/error_handler.php');
 
 $errorHandler = new ErrorHandler('production');
-
 $errorHandler->register();
 ```
 
-For development:
-
-```php
-require_once(DIR_SYSTEM . 'library/error_handler.php');
-
-$errorHandler = new ErrorHandler('development');
-
-$errorHandler->register();
-```
-
-The important part is that this code executes **before `framework.php` creates the database connection**.
-
----
-
-# Passing the OpenCart Logger
-
-The OpenCart `$log` object is created later in:
-
-```text
-system/framework.php
-```
-
-For example:
-
-```php
-$log = new Log('error.log');
-```
-
-After `$log` is created, pass it to the error handler:
+After OpenCart creates its `$log` instance in `system/framework.php`:
 
 ```php
 $errorHandler->setLog($log);
 ```
 
-The resulting initialization flow is:
-
-```text
-system/startup.php
-        │
-        ├── require error_handler.php
-        │
-        ├── new ErrorHandler('production')
-        │
-        └── register()
-                │
-                ▼
-        system/framework.php
-                │
-                ├── $log = new Log('error.log')
-                │
-                └── $errorHandler->setLog($log)
-                                │
-                                ▼
-                         ErrorHandler
-                                │
-                                └── $log->write()
-```
-
-This means the error handler is active before the database connection is created, but still uses the standard OpenCart logger once `$log` becomes available.
-
 ---
 
-# ErrorHandler API
+# Development Environment
 
-## Constructor
-
-```php
-public function __construct(
-    $environment = 'production',
-    $log = null
-)
-```
-
-### Development
+For development, initialize the handler with:
 
 ```php
 $errorHandler = new ErrorHandler('development');
 ```
 
-### Production
+For production:
 
 ```php
 $errorHandler = new ErrorHandler('production');
 ```
 
-### With an existing logger
-
-```php
-$errorHandler = new ErrorHandler(
-    'production',
-    $log
-);
-```
+Production mode should be used on public websites because sensitive information should not be exposed to visitors.
 
 ---
 
-## Register
+# Security
 
-Register all error handlers:
+The installer modifies PHP files and should not remain publicly accessible after installation.
 
-```php
-$errorHandler->register();
+After completing the installation:
+
+```bash
+php install.php delete
 ```
 
-This registers:
+or:
 
-```php
-set_error_handler();
-set_exception_handler();
-register_shutdown_function();
+```bash
+rm install.php
 ```
+
+Do not leave `install.php` publicly accessible on a production website.
 
 ---
 
-## Set Logger
+# Updating
 
-The logger can be attached after initialization:
+To update the Error Handler, download the current installer again:
 
-```php
-$errorHandler->setLog($log);
+```bash
+wget -O install.php \
+https://raw.githubusercontent.com/newtik42/opencart-error-handler/master/install.php
 ```
 
-This is useful for OpenCart because `$log` is not available when `startup.php` initially registers the error handler.
+Then run:
+
+```bash
+php install.php all
+```
+
+The installer preserves the original backup and verifies the resulting installation.
 
 ---
 
-# Error Handling
+# Troubleshooting
 
-The handler processes PHP errors such as:
+## GitHub download fails
+
+The installer uses PHP `file_get_contents()` to download the Error Handler.
+
+Make sure:
+
+```ini
+allow_url_fopen = On
+```
+
+is enabled.
+
+Check:
+
+```bash
+php -i | grep allow_url_fopen
+```
+
+Expected:
 
 ```text
-E_WARNING
-E_NOTICE
-E_DEPRECATED
-E_USER_ERROR
-E_USER_WARNING
-E_USER_NOTICE
-E_USER_DEPRECATED
+allow_url_fopen => On => On
 ```
 
-It also handles uncaught exceptions.
+You can also test the GitHub URL directly:
 
-Example:
-
-```php
-throw new Exception('Something went wrong');
+```bash
+php -r '$u="https://raw.githubusercontent.com/newtik42/opencart-error-handler/refs/heads/master/src/ErrorHandler.php"; var_dump(file_get_contents($u));'
 ```
 
-The exception is automatically passed to the registered exception handler.
-
----
-
-# Fatal Errors
-
-Fatal errors cannot normally be handled by `set_error_handler()`.
-
-The project therefore uses:
-
-```php
-register_shutdown_function()
-```
-
-together with:
-
-```php
-error_get_last()
-```
-
-to detect fatal errors.
-
-The following error types are checked:
-
-```text
-E_ERROR
-E_PARSE
-E_CORE_ERROR
-E_CORE_WARNING
-E_COMPILE_ERROR
-E_COMPILE_WARNING
-E_USER_ERROR
-```
-
----
-
-# Safe Database Stack Trace
-
-Database constructors are treated specially.
-
-The handler detects:
-
-```text
-DB\...\__construct()
-```
-
-and:
-
-```text
-DB->__construct()
-```
-
-and removes their arguments from the generated stack trace.
-
-For example, this:
-
-```text
-DB\mPDO->__construct(
-    'localhost',
-    '1newtik_u8gRwJ',
-    'kSQ1V4PHYQV5',
-    '1newtik_kaU7GY',
-    '3306'
-)
-```
-
-becomes:
-
-```text
-DB\mPDO->__construct()
-```
-
-The same applies to:
-
-```text
-DB\mysqli->__construct()
-DB\PDO->__construct()
-DB\mPDO->__construct()
-DB->__construct()
-```
-
-This prevents database credentials from being exposed by PHP's trace arguments.
-
----
-
-# Secret Masking
-
-The handler also masks common sensitive values in log messages.
-
-Protected parameter names include:
-
-```text
-password
-passwd
-pwd
-pass
-token
-access_token
-refresh_token
-secret
-api_key
-apikey
-```
-
-Example:
-
-```text
-password=my-secret-password
-```
-
-becomes:
-
-```text
-password=********
-```
-
-This is an additional security layer.
-
-Applications should still avoid placing credentials directly into exception messages.
-
----
-
-# Development Mode
-
-Use:
-
-```php
-$errorHandler = new ErrorHandler('development');
-$errorHandler->register();
-```
-
-Development mode displays technical information such as:
-
-* exception type
-* error message
-* source file
-* line number
-* safe stack trace
-
-Example:
-
-```text
-Exception
-
-Failed to connect to database.
-
-/web/sites/example/system/library/db/mpdo.php:11
-
-Stack trace:
-
-#0 /web/sites/example/system/library/db.php(31): DB\mPDO->__construct()
-#1 /web/sites/example/system/framework.php(146): DB->__construct()
-```
-
-Database constructor arguments are not displayed.
-
----
-
-# Production Mode
-
-Production should be used on publicly accessible websites:
-
-```php
-$errorHandler = new ErrorHandler('production');
-$errorHandler->register();
-```
-
-Visitors receive only a generic error:
-
-```text
-Internal Server Error
-
-An internal server error occurred.
-```
-
-Technical details are written to the configured OpenCart logger.
-
-Do not expose development mode on a production website.
-
----
-
-# AJAX / API Requests
-
-The handler automatically detects JSON/AJAX requests.
-
-JSON responses are returned as:
-
-```json
-{
-    "success": false,
-    "error": {
-        "code": 500,
-        "message": "Internal Server Error"
-    }
-}
-```
-
-This allows the same handler to be used by:
-
-* OpenCart frontend requests
-* admin AJAX requests
-* API endpoints
-* JavaScript applications
-
----
-
-# Recommended OpenCart Configuration
-
-## `system/startup.php`
-
-```php
-require_once(DIR_SYSTEM . 'library/error_handler.php');
-
-$errorHandler = new ErrorHandler('production');
-
-$errorHandler->register();
-```
-
-## `system/framework.php`
-
-After OpenCart creates the logger:
-
-```php
-$log = new Log('error.log');
-
-$errorHandler->setLog($log);
-```
-
-The handler is now active before database initialization and uses the OpenCart logger once it becomes available.
+If this fails, check:
+
+* DNS configuration
+* outbound HTTPS connectivity
+* CA certificates
+* PHP SSL configuration
+* `allow_url_fopen`
 
 ---
 
@@ -501,48 +409,13 @@ The handler is now active before database initialization and uses the OpenCart l
 opencart-error-handler/
 ├── src/
 │   └── ErrorHandler.php
-├── examples/
-│   └── index.php
+├── install.php
 ├── README.md
-├── LICENSE
-└── .gitignore
+└── LICENSE
 ```
-
----
-
-# Requirements
-
-* OpenCart 3.x
-* PHP 7.x or PHP 8.x
-
-The implementation intentionally avoids PHP 8-only syntax such as:
-
-```php
-match
-```
-
-to maintain compatibility with older OpenCart 3 installations.
-
----
-
-# Security Considerations
-
-This project is designed to reduce accidental disclosure of sensitive information during error handling.
-
-It does not replace proper application security practices.
-
-Recommended practices:
-
-* Never put passwords in exception messages.
-* Never log database credentials.
-* Do not expose development mode publicly.
-* Protect OpenCart log files.
-* Use HTTPS.
-* Keep PHP and OpenCart updated.
-* Review third-party OpenCart extensions for unsafe error handling.
 
 ---
 
 # License
 
-GPL-3.0 License
+See [LICENSE](LICENSE).
