@@ -461,39 +461,9 @@ class ErrorHandlerInstaller {
      *
      * file_get_contents() only.
      */
-    private function downloadErrorHandler() {
-        $context = stream_context_create(
-                array(
-                    'http' => array(
-                        'method' => 'GET',
-                        'timeout' => 30,
-                        'ignore_errors' => false,
-                        'header' =>
-                        "User-Agent: " .
-                        "OpenCart-Error-Handler-Installer/1.0\r\n" .
-                        "Accept: text/plain\r\n"
-                    ),
-                    'ssl' => array(
-                        'verify_peer' => true,
-                        'verify_peer_name' => true
-                    )
-                )
-        );
+    private function downloadErrorHandler() {        
 
-        $lastError = null;
-
-        set_error_handler(
-                function ($severity, $message) use (&$lastError) {
-                    $lastError = $message;
-                    return true;
-                }
-        );
-
-        $content = file_get_contents(
-                $this->githubUrl,
-                false,
-                $context
-        );
+        $content = file_get_contents($this->githubUrl);
 
         restore_error_handler();
 
