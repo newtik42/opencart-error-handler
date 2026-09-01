@@ -419,7 +419,7 @@ PHP;
 
         $replacement = '$1' . PHP_EOL . 'require_once(DIR_SYSTEM . \'library/error_handler.php\');
 
-$errorHandler = new ErrorHandler\'development\', $log);
+$errorHandler = new ErrorHandler(\'development\', $log);
 $errorHandler->register();' . PHP_EOL;
 
         $count = 0;
