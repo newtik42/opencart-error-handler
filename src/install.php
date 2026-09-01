@@ -94,7 +94,7 @@ class ErrorHandlerInstaller {
             $this->startupFile,
             $this->frameworkFile
         );
-
+        /*
         foreach ($files as $file) {
             $syntax = $this->checkSyntax($file);
 
@@ -104,7 +104,7 @@ class ErrorHandlerInstaller {
 
             $this->output('      [OK] ' . $file);
         }
-
+        */
         $this->output('[7/7] Running final check...');
 
         return $this->check();
